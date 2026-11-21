@@ -1,0 +1,21 @@
+# Environment variables and secrets
+.env
+.env.*
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+.venv/
+
+# Generated video files
+clips/*
+.work/
+
+# Keep folder structure
+!clips/.gitkeep
+
+# Temporary files
+*.log

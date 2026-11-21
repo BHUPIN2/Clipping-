@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ViralClip — AI Viral Shorts Engine</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    :root {
+      --bg: #09090b;
+      --bg-raised: #111114;
+      --bg-card: #18181b;
+      --bg-card-hover: #1e1e22;
+      --bg-glass: rgba(24, 24, 27, 0.72);
+      --border: #27272a;
+      --border-subtle: #1f1f23;
+      --border-glow: rgba(139, 92, 246, 0.25);
+
+      --text: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --primary-glow: rgba(139, 92, 246, 0.35);
+      --primary-surface: rgba(139, 92, 246, 0.08);
+
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.25);
+      --green: #22c55e;
+      --green-surface: rgba(34, 197, 94, 0.1);
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --red-surface: rgba(239, 68, 68, 0.1);
+
+      --radius: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-full: 999px;
+
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ============================================================
+       Ambient Background Glow
+    ============================================================ */
+    .ambient-glow {
+      position: fixed;
+      top: -180px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 500px;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(139, 92, 246, 0.12) 0%,
+        rgba(6, 182, 212, 0.06) 40%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ============================================================
+       Top Navigation Bar — Floating Glass
+    ============================================================ */
+    .topnav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 32px;
+      background: rgba(9, 9, 11, 0.82);
+      backdrop-filter: blur(16px) saturate(1.4);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-logo {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--cyan));
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 14px;
+      color: #fff;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .nav-name {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #e0e0ff, #ffffff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      background: var(--primary-surface);
+      color: var(--primary);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .nav-link {
+      padding: 7px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border: none;
+      background: none;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+
+    .nav-link:hover { color: var(--text); background: var(--bg-card); }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--radius);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: transparent;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      font-family: var(--sans);
+    }
+
+    .btn-ghost:hover { color: var(--text); border-color: #3f3f46; background: var(--bg-card); }
+
+    .btn-glow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 18px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--primary);
+      border: 1px solid rgba(139, 92, 246, 0.5);
+      box-shadow: 0 0 24px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.1);
+      cursor: pointer;
+      transition: all 0.18s;
+      font-family: var(--sans);
+    }
+
+    .btn-glow:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 0 32px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    .btn-glow:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* ============================================================
+       Main Container
+    ============================================================ */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ============================================================
+       Hero Section
+    ============================================================ */
+    .hero {
+      text-align: center;
+      padding: 60px 0 44px;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: "";
+      width: 32px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--primary));
+    }
+
+    .hero-eyebrow::after {
+      background: linear-gradient(to left, transparent, var(--primary));
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 14px;
+      background: linear-gradient(to bottom right, #ffffff 30%, #a1a1aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+
+    /* ============================================================
+       The Command Bar — Main URL Input
+    ============================================================ */
+    .command-bar {
+      max-width: 720px;
+      margin: 0 auto 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 6px;
+      transition: all 0.2s;
+    }
+
+    .command-bar:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow), 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .cmd-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+    }
+
+    .cmd-prefix {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--primary);
+      font-weight: 700;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    #urlInput {
+      flex: 1;
+      background: none;
+      border: none;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      outline: none;
+      font-family: var(--sans);
+    }
+
+    #urlInput::placeholder { color: var(--text-muted); }
+
+    .cmd-submit {
+      padding: 9px 20px;
+      border-radius: 14px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: var(--sans);
+      transition: all 0.15s;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+
+    .cmd-submit:hover:not(:disabled) { background: var(--primary-hover); }
+    .cmd-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Toolbar beneath the command bar */
+    .cmd-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px 6px;
+      border-top: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.12s;
+      font-family: var(--sans);
+    }
+
+    .chip:hover { color: var(--text); border-color: #3f3f46; }
+    .chip.active { color: var(--primary); border-color: var(--primary); background: var(--primary-surface); }
+
+    .chip-sep {
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+      margin: 0 2px;
+    }
+
+    /* ============================================================
+       Options Drawer (Collapsible)
+    ============================================================ */
+    .options-drawer {
+      max-width: 720px;
+      margin: 0 auto 36px;
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      animation: slideDown 0.2s ease;
+    }
+
+    .options-drawer.open { display: block; }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .opts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 600px) { .opts-grid { grid-template-columns: 1fr; } }
+
+    .opt-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+      font-family: var(--mono);
+    }
+
+    .opt-field select,
+    .opt-field input[type="text"],
+    .opt-field input[type="number"] {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-raised);
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--sans);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .opt-field select:focus,
+    .opt-field input:focus { border-color: var(--primary); }
+
+    .opts-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .toggle-label input { accent-color: var(--primary); width: 14px; height: 14px; }
+
+    /* ============================================================
+       Bento Stats Grid
+    ============================================================ */
+    .bento-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 700px) { .bento-stats { grid-template-columns: 1fr 1fr; } }
+
+    .bento-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: all 0.18s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bento-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--cyan));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .bento-card:hover {
+      border-color: #3f3f46;
+      background: var(--bg-card-hover);
+    }
+
+    .bento-card:hover::before { opacity: 1; }
+
+    .bento-icon {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .bento-val {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .bento-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* ============================================================
+       Wide Info Cards Row (Activity + AI Engine)
+    ============================================================ */
+    .info-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 800px) { .info-row { grid-template-columns: 1fr; } }
+
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .info-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .info-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--green);
+      font-family: var(--mono);
+    }
+
+    .status-dot::before {
+      content: "";
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    }
+
+    .info-metrics {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .metric-block .metric-val {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .metric-block .metric-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    .mini-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 50px;
+    }
+
+    .mini-bar {
+      flex: 1;
+      background: var(--border);
+      border-radius: 3px 3px 0 0;
+      min-height: 3px;
+      transition: height 0.3s;
+    }
+
+    .mini-bar.lit { background: var(--primary); box-shadow: 0 0 8px var(--primary-glow); }
+
+    .ai-name {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 2px;
+    }
+
+    .ai-sub {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .ai-spec-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 12.5px;
+    }
+
+    .ai-spec-label { color: var(--text-muted); }
+    .ai-spec-val { font-weight: 700; color: var(--text); font-family: var(--mono); font-size: 11.5px; }
+
+    /* ============================================================
+       Studio Panel (Inspect → Crop Editor + 9:16 Preview)
+    ============================================================ */
+    .studio {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .studio.open { display: block; animation: slideDown 0.25s ease; }
+
+    .studio-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .studio-title {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .studio-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    .studio-cols {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 860px) { .studio-cols { grid-template-columns: 1fr; } }
+
+    .frame-wrap {
+      position: relative;
+      background: #000;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    #previewCanvas { width: 100%; display: block; }
+
+    .crop-box {
+      position: absolute;
+      cursor: move;
+      border-radius: 3px;
+    }
+
+    .crop-facecam {
+      border: 2px solid #eab308;
+      background: rgba(234, 179, 8, 0.12);
+    }
+
+    .crop-gameplay {
+      border: 2px solid var(--cyan);
+      background: rgba(6, 182, 212, 0.1);
+    }
+
+    .box-tag {
+      position: absolute;
+      top: 3px; left: 3px;
+      font-size: 9px;
+      font-weight: 800;
+      font-family: var(--mono);
+      padding: 1px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+
+    .crop-facecam .box-tag { background: #eab308; color: #000; }
+    .crop-gameplay .box-tag { background: var(--cyan); color: #000; }
+
+    .handle {
+      position: absolute;
+      width: 10px; height: 10px;
+      background: #fff;
+      border: 2px solid #000;
+      border-radius: 50%;
+    }
+
+    .handle-br { right: -5px; bottom: -5px; cursor: se-resize; }
+    .handle-tl { left: -5px; top: -5px; cursor: nw-resize; }
+
+    .seek-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    .seek-row input[type="range"] { flex: 1; accent-color: var(--primary); }
+
+    .phone-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .phone-label {
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .phone-bezel {
+      width: 220px;
+      aspect-ratio: 9 / 16;
+      background: #000;
+      border-radius: 24px;
+      border: 4px solid #27272a;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+      position: relative;
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 6px; left: 50%; transform: translateX(-50%);
+      width: 56px; height: 10px;
+      background: #27272a;
+      border-radius: var(--radius-full);
+      z-index: 2;
+    }
+
+    #verticalCanvas { width: 100%; height: 100%; display: block; }
+
+    /* ============================================================
+       Job Progress
+    ============================================================ */
+    .job-card {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 28px;
+    }
+
+    .job-card.open { display: block; animation: slideDown 0.2s ease; }
+
+    .job-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .job-msg { font-size: 14px; font-weight: 700; }
+
+    .job-pct {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .job-track {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-raised);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .job-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--cyan));
+      box-shadow: 0 0 12px var(--primary-glow);
+      transition: width 0.3s;
+      border-radius: var(--radius-full);
+    }
+
+    .job-logs {
+      background: #0c0c0e;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      max-height: 120px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    /* ============================================================
+       Clips Library
+    ============================================================ */
+    .library {
+      margin-bottom: 80px;
+    }
+
+    .lib-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .lib-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .clips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+    .clip-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    .clip-card:hover {
+      border-color: #3f3f46;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      transform: translateY(-2px);
+    }
+
+    .clip-vid-wrap {
+      position: relative;
+      background: #000;
+      aspect-ratio: 9 / 16;
+    }
+
+    .clip-vid-wrap video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .viral-badge {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--primary);
+      color: #fff;
+      font-weight: 800;
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    .clip-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .clip-title {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .clip-reason {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .tag-chip {
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: var(--mono);
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: var(--primary-surface);
+      color: var(--primary);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+    }
+
+    .clip-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      padding-top: 6px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .clip-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-dl {
+      flex: 1;
+      text-align: center;
+      padding: 7px;
+      border-radius: var(--radius);
+      background: var(--primary);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.12s;
+    }
+
+    .btn-dl:hover { background: var(--primary-hover); }
+
+    .btn-sm-action {
+      padding: 7px 10px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-raised);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .btn-sm-action:hover { color: var(--text); border-color: #3f3f46; }
+
+    .btn-sm-del {
+      padding: 7px 10px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      background: var(--red-surface);
+      color: var(--red);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-sm-del:hover { background: rgba(239, 68, 68, 0.18); }
+
+    .btn-copy-full {
+      width: 100%;
+      padding: 7px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-raised);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.12s;
+    }
+
+    .btn-copy-full:hover { color: var(--text); border-color: #3f3f46; }
+
+    .trim-panel {
+      display: none;
+      background: var(--bg-raised);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 10px;
+      margin-top: 6px;
+      font-size: 12px;
+    }
+
+    .trim-panel.show { display: block; }
+
+    .trim-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .trim-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .trim-btn:hover { color: var(--text); }
+
+    .empty-lib {
+      background: var(--bg-card);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-lg);
+      padding: 60px 24px;
+      text-align: center;
+    }
+
+    .empty-lib-icon { font-size: 42px; margin-bottom: 14px; opacity: 0.5; }
+    .empty-lib-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .empty-lib-sub { font-size: 13px; color: var(--text-muted); }
+
+    /* ============================================================
+       Modal (Settings)
+    ============================================================ */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      z-index: 500;
+      place-items: center;
+    }
+
+    .modal-bg.open { display: grid; }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      max-width: 440px;
+      width: 90%;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .modal-head h3 { font-size: 16px; font-weight: 800; }
+
+    .modal-x {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .modal-x:hover { color: var(--text); }
+
+    .modal-input-row {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-raised);
+      padding: 8px 12px;
+      margin-bottom: 14px;
+    }
+
+    .modal-input-row input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .modal-save {
+      width: 100%;
+      padding: 10px;
+      border-radius: var(--radius);
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+
+    .modal-save:hover { background: var(--primary-hover); }
+
+    /* ============================================================
+       Footer
+    ============================================================ */
+    .footer {
+      text-align: center;
+      padding: 32px 0;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      border-top: 1px solid var(--border-subtle);
+    }
+  </style>
+</head>
+<body>
+
+<div class="ambient-glow"></div>
+
+<!-- ============================================================
+     Navigation Bar
+============================================================= -->
+<nav class="topnav">
+  <div class="nav-brand">
+    <div class="nav-logo">V</div>
+    <span class="nav-name">ViralClip</span>
+    <span class="nav-tag">v2.0</span>
+  </div>
+
+  <div class="nav-links">
+    <button class="nav-link" onclick="window.scrollTo({top:0,behavior:'smooth'})">Dashboard</button>
+    <button class="nav-link" onclick="scrollToLib()">Library</button>
+    <button class="nav-link" onclick="openClipsFolder()">📁 Folder</button>
+    <a href="/api/export-zip" class="nav-link">📦 Export</a>
+  </div>
+
+  <div class="nav-actions">
+    <button class="btn-ghost" id="keyStatusNav" onclick="openModal()">⚡ Connect API</button>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ============================================================
+       Hero Section
+  ============================================================= -->
+  <section class="hero">
+    <div class="hero-eyebrow">AI-Powered Viral Engine</div>
+    <h1>Find the moments<br>that break the internet.</h1>
+    <p class="hero-sub">Drop any YouTube link. AI detects peak viral clips, formats 9:16 vertical shorts with captions, tracking, and loudness — all locally.</p>
+  </section>
+
+  <!-- ============================================================
+       Command Bar (URL Input)
+  ============================================================= -->
+  <div class="command-bar">
+    <div class="cmd-input-row">
+      <span class="cmd-prefix">&gt;_</span>
+      <input id="urlInput" type="text" placeholder="Paste YouTube link here…" autocomplete="off" />
+      <button id="goBtn" class="cmd-submit" onclick="handleGo()">Make clips</button>
+    </div>
+    <div class="cmd-toolbar">
+      <div class="toolbar-left">
+        <button id="layoutChip" class="chip active" onclick="cycleLayout()">
+          <span id="layoutEmoji">👤</span> <span id="layoutText">Facecam Top</span>
+        </button>
+        <div class="chip-sep"></div>
+        <button class="chip" onclick="toggleOpts()">⚙ Options</button>
+      </div>
+      <span style="font-size:11px; color:var(--text-muted); font-family:var(--mono);">enter → inspect</span>
+    </div>
+  </div>
+
+  <!-- Options Drawer -->
+  <div id="optsDrawer" class="options-drawer">
+    <div class="opts-grid">
+      <div class="opt-field">
+        <label>Clips to Generate</label>
+        <select id="maxClipsSelect">
+          <option value="1">1 — single best</option>
+          <option value="3">3 clips</option>
+          <option value="5" selected>5 clips (recommended)</option>
+          <option value="8">8 clips</option>
+          <option value="10">10 clips</option>
+          <option value="15">15 — full digest</option>
+        </select>
+      </div>
+      <div class="opt-field">
+        <label>Clip Length</label>
+        <select id="clipLengthSelect">
+          <option value="short">Short (15–30s)</option>
+          <option value="medium" selected>Standard (20–60s)</option>
+          <option value="long">Long (45–90s)</option>
+        </select>
+      </div>
+      <div class="opt-field">
+        <label>Focus Topic</label>
+        <input id="topicInput" type="text" placeholder='e.g. "crowd work" or "clutch play"' />
+      </div>
+      <div class="opt-field">
+        <label>Live Rewind Buffer</label>
+        <select id="lookbackSelect">
+          <option value="15">15 min</option>
+          <option value="30" selected>30 min</option>
+          <option value="60">1 hour</option>
+          <option value="120">2 hours</option>
+        </select>
+      </div>
+    </div>
+    <div class="opts-toggles">
+      <label class="toggle-label"><input id="captionsToggle" type="checkbox" checked onchange="renderPreview()"> Animated captions</label>
+      <label class="toggle-label"><input id="hookToggle" type="checkbox" onchange="renderPreview()"> 3s hook banner</label>
+      <label class="toggle-label"><input id="loudnormToggle" type="checkbox" checked> Loudness norm</label>
+      <label class="toggle-label" style="gap:4px;"><span>Watermark:</span> <input id="watermarkInput" type="text" placeholder="@handle" style="width:100px; padding:3px 6px; border-radius:6px; border:1px solid var(--border); background:var(--bg-raised); color:var(--text); font-size:11px;" oninput="renderPreview()"></label>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       Bento Stats
+  ============================================================= -->
+  <section class="bento-stats">
+    <div class="bento-card">
+      <div class="bento-icon">📡</div>
+      <div id="statLive" class="bento-val">—</div>
+      <div class="bento-label">Live Streams</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-icon">✂️</div>
+      <div id="statClips" class="bento-val">0</div>
+      <div class="bento-label">Clips Saved</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-icon">🎯</div>
+      <div class="bento-val">Local</div>
+      <div class="bento-label">AI Tracking</div>
+    </div>
+    <div class="bento-card">
+      <div class="bento-icon">⚡</div>
+      <div class="bento-val">0ms</div>
+      <div class="bento-label">A/V Sync</div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Info Cards (Activity + AI)
+  ============================================================= -->
+  <section class="info-row">
+    <div class="info-card">
+      <div class="info-header">
+        <div class="info-title">Activity</div>
+        <span class="status-dot">realtime</span>
+      </div>
+      <div class="info-metrics">
+        <div class="metric-block"><div id="metricClips" class="metric-val">0</div><div class="metric-lbl">clips made</div></div>
+        <div class="metric-block"><div class="metric-val">9:16</div><div class="metric-lbl">format</div></div>
+        <div class="metric-block"><div class="metric-val">1080p</div><div class="metric-lbl">output</div></div>
+        <div class="metric-block"><div class="metric-val">0</div><div class="metric-lbl">quota used</div></div>
+      </div>
+      <div class="mini-bars">
+        <div class="mini-bar" style="height:20%"></div>
+        <div class="mini-bar" style="height:35%"></div>
+        <div class="mini-bar" style="height:10%"></div>
+        <div class="mini-bar" style="height:55%"></div>
+        <div class="mini-bar" style="height:25%"></div>
+        <div class="mini-bar" style="height:70%"></div>
+        <div class="mini-bar lit" style="height:90%"></div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-header">
+        <div class="info-title">AI Engine</div>
+        <span class="status-dot" id="aiStatus">connected</span>
+      </div>
+      <div class="ai-name">Gemini Flash</div>
+      <div class="ai-sub">gemini-3.8-flash · auto-failover</div>
+      <div class="ai-spec-row"><span class="ai-spec-label">Viral Detection</span><span class="ai-spec-val">single-call</span></div>
+      <div class="ai-spec-row"><span class="ai-spec-label">Speaker Tracking</span><span class="ai-spec-val">local yunet</span></div>
+      <div class="ai-spec-row"><span class="ai-spec-label">Subtitles</span><span class="ai-spec-val">local whisper</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Studio (Crop Editor + Preview)
+  ============================================================= -->
+  <section id="studio" class="studio">
+    <div class="studio-top">
+      <div>
+        <div id="studioTitle" class="studio-title"></div>
+        <div id="studioMeta" class="studio-meta"></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-ghost" onclick="autoDetect()">✨ Auto-Detect</button>
+        <button class="btn-glow" onclick="startJob()">🚀 Start Clipping</button>
+      </div>
+    </div>
+    <div class="studio-cols">
+      <div>
+        <div class="frame-wrap" id="frameBox">
+          <canvas id="previewCanvas"></canvas>
+          <div id="fcBox" class="crop-box crop-facecam"><span class="box-tag">cam</span><div class="handle handle-br"></div><div class="handle handle-tl"></div></div>
+          <div id="gpBox" class="crop-box crop-gameplay"><span class="box-tag">game</span><div class="handle handle-br"></div><div class="handle handle-tl"></div></div>
+        </div>
+        <div class="seek-row">
+          <span>seek:</span>
+          <input id="seekSlider" type="range" min="0.05" max="0.95" step="0.05" value="0.25" onchange="seekFrame(this.value)">
+          <span id="seekLabel">25%</span>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone-label">9:16 output preview</div>
+        <div class="phone-bezel"><div class="phone-notch"></div><canvas id="verticalCanvas" width="1080" height="1920"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Job Progress
+  ============================================================= -->
+  <section id="jobCard" class="job-card">
+    <div class="job-top">
+      <div id="jobMsg" class="job-msg">Processing…</div>
+      <div id="jobPct" class="job-pct">0%</div>
+    </div>
+    <div class="job-track"><div id="jobFill" class="job-fill"></div></div>
+    <div id="jobLogs" class="job-logs"></div>
+  </section>
+
+  <!-- ============================================================
+       Clips Library
+  ============================================================= -->
+  <section id="libSection" class="library">
+    <div class="lib-header">
+      <div class="lib-title">Clips Library</div>
+      <button class="btn-ghost" onclick="refreshClips()">↻ Refresh</button>
+    </div>
+    <div id="clipsGrid" class="clips-grid"></div>
+    <div id="emptyLib" class="empty-lib">
+      <div class="empty-lib-icon">🎬</div>
+      <div class="empty-lib-title">No clips yet</div>
+      <div class="empty-lib-sub">Paste a YouTube link above and hit <strong>Make clips</strong></div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">ViralClip v2.0 — runs 100% locally on your machine</footer>
+
+<!-- ============================================================
+     Settings Modal
+============================================================= -->
+<div id="modal" class="modal-bg">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Gemini API Key</h3>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; line-height:1.5;">Stored locally in <code style="background:var(--bg-raised); padding:2px 5px; border-radius:4px; font-family:var(--mono);">.env</code>. Tracking &amp; subtitles are 100% local — zero API calls.</p>
+    <div class="modal-input-row">
+      <input id="modalKey" type="password" placeholder="AIzaSy..." autocomplete="off" />
+    </div>
+    <button class="modal-save" onclick="saveKey()">Save Key</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     App JS
+============================================================= -->
+<script>
+const $=id=>document.getElementById(id);
+const S={video:null,img:null,layout:"facecam_top",fc:{x:.02,y:.62,w:.28,h:.34},gp:{x:.25,y:0,w:.5,h:1},dragging:false,jobTimer:null};
+
+function openModal(){$("modal").classList.add("open")}
+function closeModal(){$("modal").classList.remove("open")}
+function toggleOpts(){$("optsDrawer").classList.toggle("open")}
+function scrollToLib(){$("libSection").scrollIntoView({behavior:"smooth"})}
+function openClipsFolder(){fetch("/api/open-folder",{method:"POST"})}
+
+function cycleLayout(){
+  const m=["facecam_top","facecam_bottom","no_facecam"];
+  S.layout=m[(m.indexOf(S.layout)+1)%m.length];
+  const e=$("layoutEmoji"),t=$("layoutText");
+  if(S.layout==="facecam_top"){e.textContent="👤";t.textContent="Facecam Top";$("fcBox").style.display="block";$("gpBox").style.display="block"}
+  else if(S.layout==="facecam_bottom"){e.textContent="🎮";t.textContent="Facecam Bottom";$("fcBox").style.display="block";$("gpBox").style.display="block"}
+  else{e.textContent="🎯";t.textContent="No Facecam · AI Track";$("fcBox").style.display="none";$("gpBox").style.display="none"}
+  renderPreview();
+}
+
+$("urlInput").addEventListener("keydown",e=>{if(e.key==="Enter")handleGo()});
+
+async function init(){
+  try{const r=await fetch("/api/config");const d=await r.json();
+    if(d.has_api_key){$("keyStatusNav").innerHTML="⚡ Connected";$("keyStatusNav").style.color="var(--green)";$("keyStatusNav").style.borderColor="rgba(34,197,94,0.3)"}
+  }catch(e){}
+  refreshClips();
+}
+
+async function saveKey(){
+  const k=$("modalKey").value.trim();if(!k)return;
+  try{const r=await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:k})});
+    if(r.ok){$("keyStatusNav").innerHTML="⚡ Connected";$("keyStatusNav").style.color="var(--green)";$("keyStatusNav").style.borderColor="rgba(34,197,94,0.3)";closeModal()}}catch(e){}
+}
+
+async function handleGo(){
+  const u=$("urlInput").value.trim();if(!u)return $("urlInput").focus();
+  if(!S.video||S.video.url!==u)await inspect();else startJob();
+}
+
+async function inspect(seek=0.25){
+  const u=$("urlInput").value.trim();if(!u)return;
+  const btn=$("goBtn");btn.disabled=true;btn.textContent="Inspecting…";
+  try{
+    const r=await fetch("/api/inspect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:u,seek_ratio:seek})});
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||"Fail");
+    S.video={...d,url:u};
+    $("studio").classList.add("open");$("studio").scrollIntoView({behavior:"smooth"});
+    $("studioTitle").textContent=d.title;
+    $("studioMeta").textContent=`${d.channel} · ${fmtDur(d.duration)} · ${d.is_live?"🔴 LIVE":"VOD"}`;
+    if(d.is_live){$("statLive").textContent="1";$("statLive").style.color="var(--red)"}
+    const img=new Image();img.onload=()=>{S.img=img;const c=$("previewCanvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);if(d.facecam)S.fc=d.facecam;if(d.gameplay)S.gp=d.gameplay;syncBoxes();renderPreview()};
+    img.src=d.preview_url;
+  }catch(e){alert(e.message)}finally{btn.disabled=false;btn.textContent="Make clips"}
+}
+
+function seekFrame(v){$("seekLabel").textContent=Math.round(v*100)+"%";inspect(parseFloat(v))}
+
+function fmtDur(s){s=Math.max(0,Math.round(s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return h?`${h}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`:`${m}:${String(ss).padStart(2,"0")}`}
+
+async function autoDetect(){
+  if(!S.video)return;const btn=$("goBtn");
+  try{const r=await fetch("/api/detect-facecam",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({preview_filename:S.video.preview_filename})});
+    const d=await r.json();if(d.found&&d.facecam){S.fc=d.facecam;syncBoxes();renderPreview()}else alert("No facecam found")}catch(e){alert(e.message)}
+}
+
+function syncBoxes(){
+  const set=(el,b)=>{el.style.left=b.x*100+"%";el.style.top=b.y*100+"%";el.style.width=b.w*100+"%";el.style.height=b.h*100+"%"};
+  set($("fcBox"),S.fc);set($("gpBox"),S.gp);
+}
+
+function renderPreview(){
+  const c=$("verticalCanvas"),ctx=c.getContext("2d"),W=1080,H=1920;
+  ctx.fillStyle="#09090b";ctx.fillRect(0,0,W,H);
+  if(!S.img)return;const img=S.img,iw=img.naturalWidth,ih=img.naturalHeight;
+  if(S.layout==="no_facecam"){const cH=ih,cW=Math.round(cH*W/H),cX=Math.max(0,(iw-cW)/2);ctx.drawImage(img,cX,0,cW,cH,0,0,W,H)}
+  else{const fH=680,gH=1240,top=S.layout==="facecam_top";
+    ctx.drawImage(img,S.fc.x*iw,S.fc.y*ih,S.fc.w*iw,S.fc.h*ih,0,top?0:gH,W,fH);
+    ctx.drawImage(img,S.gp.x*iw,S.gp.y*ih,S.gp.w*iw,S.gp.h*ih,0,top?fH:0,W,gH);
+    ctx.fillStyle="#18181b";ctx.fillRect(0,top?fH-2:gH-2,W,4)}
+  if($("captionsToggle").checked){ctx.save();ctx.textAlign="center";ctx.font="bold 58px Inter,sans-serif";
+    const y=S.layout==="facecam_top"?1400:960;ctx.strokeStyle="#000";ctx.lineWidth=12;ctx.strokeText("VIRAL MOMENT 🔥",W/2,y);ctx.fillStyle="#facc15";ctx.fillText("VIRAL MOMENT 🔥",W/2,y);ctx.restore()}
+  if($("hookToggle").checked){ctx.save();ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(40,55,W-80,100);ctx.fillStyle="#fff";ctx.font="bold 40px Inter";ctx.textAlign="center";ctx.fillText("WAIT FOR IT…",W/2,124);ctx.restore()}
+  const wm=$("watermarkInput").value.trim();
+  if(wm){ctx.save();ctx.font="bold 28px sans-serif";ctx.fillStyle="rgba(255,255,255,.55)";ctx.textAlign="right";ctx.fillText(wm,W-36,H-50);ctx.restore()}
+}
+
+(function initDrag(){
+  const fb=$("frameBox");let act=null,resize=false,sx,sy,ib;
+  function dn(e,t,r){e.preventDefault();act=t;resize=r;sx=e.clientX;sy=e.clientY;ib={...(t==="fc"?S.fc:S.gp)}}
+  $("fcBox").addEventListener("mousedown",e=>dn(e,"fc",e.target.classList.contains("handle")));
+  $("gpBox").addEventListener("mousedown",e=>dn(e,"gp",e.target.classList.contains("handle")));
+  window.addEventListener("mousemove",e=>{if(!act)return;const r=fb.getBoundingClientRect();const dx=(e.clientX-sx)/r.width,dy=(e.clientY-sy)/r.height;
+    const b=act==="fc"?S.fc:S.gp;
+    if(resize){b.w=Math.max(.08,Math.min(1-ib.x,ib.w+dx));b.h=Math.max(.08,Math.min(1-ib.y,ib.h+dy))}
+    else{b.x=Math.max(0,Math.min(1-ib.w,ib.x+dx));b.y=Math.max(0,Math.min(1-ib.h,ib.y+dy))}
+    syncBoxes();renderPreview()});
+  window.addEventListener("mouseup",()=>{act=null});
+})();
+
+async function startJob(){
+  if(!S.video)return;
+  const p={url:S.video.url,layout:S.layout,facecam:S.fc,gameplay:S.gp,
+    max_clips:parseInt($("maxClipsSelect").value)||5,clip_length:$("clipLengthSelect").value,
+    topic_filter:$("topicInput").value.trim(),lookback_minutes:parseInt($("lookbackSelect").value)||30,
+    captions:$("captionsToggle").checked,hook_banner:$("hookToggle").checked,
+    loudnorm:$("loudnormToggle").checked,watermark:$("watermarkInput").value.trim()};
+  try{const r=await fetch("/api/clip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||"Error");
+    $("jobCard").classList.add("open");$("jobCard").scrollIntoView({behavior:"smooth"});pollJob(d.job_id)}catch(e){alert(e.message)}
+}
+
+function pollJob(id){
+  if(S.jobTimer)clearInterval(S.jobTimer);
+  S.jobTimer=setInterval(async()=>{
+    try{const r=await fetch(`/api/jobs/${id}`);if(!r.ok)return;const d=await r.json();
+      $("jobMsg").textContent=d.message||"Working…";$("jobPct").textContent=d.progress+"%";$("jobFill").style.width=d.progress+"%";
+      $("jobLogs").innerHTML=(d.logs||[]).map(l=>`<div>${esc(l)}</div>`).join("");$("jobLogs").scrollTop=$("jobLogs").scrollHeight;
+      if(d.status==="done"||d.status==="error"){clearInterval(S.jobTimer);refreshClips();if(d.status==="done")setTimeout(()=>scrollToLib(),1200)}
+    }catch(e){}
+  },1500);
+}
+
+async function refreshClips(){
+  try{const r=await fetch("/api/clips");const d=await r.json();const clips=d.clips||[];
+    $("statClips").textContent=clips.length;$("metricClips").textContent=clips.length;
+    if(!clips.length){$("clipsGrid").innerHTML="";$("emptyLib").style.display="block";return}
+    $("emptyLib").style.display="none";
+    window._c=Object.fromEntries(clips.map(c=>[c.id,c]));
+    $("clipsGrid").innerHTML=clips.map(c=>{
+      const tags=(c.hashtags||[]).map(t=>`<span class="tag-chip">${esc(t)}</span>`).join("");
+      return `<div class="clip-card">
+        <div class="clip-vid-wrap"><span class="viral-badge">⚡ ${Number(c.viral_score).toFixed(1)}</span>
+        <video controls preload="metadata" src="/clips/${encodeURI(c.rel_path)}"></video></div>
+        <div class="clip-body">
+          <div class="clip-title">${esc(c.title)}</div>
+          <div class="clip-reason">${esc(c.reason)}</div>
+          ${tags?`<div class="tags-row">${tags}</div>`:""}
+          <div class="clip-stats"><span>${esc(c.timestamp_label)} · ${Math.round(c.duration_sec)}s</span><span>${c.file_size_mb} MB</span></div>
+          <button class="btn-copy-full" onclick="copyTags('${c.id}',this)">📋 Copy title &amp; hashtags</button>
+          <div class="clip-actions">
+            <a class="btn-dl" href="/api/download/${encodeURI(c.rel_path)}" download="${esc(c.filename)}">Download</a>
+            <button class="btn-sm-action" onclick="toggleTrim('${c.id}')">Trim</button>
+            <button class="btn-sm-del" onclick="delClip('${c.id}')">Delete</button>
+          </div>
+          <div id="trim_${c.id}" class="trim-panel">
+            <div class="trim-row"><span>Start:</span><div style="display:flex;gap:3px;align-items:center">
+              <button class="trim-btn" onclick="nudge('s_${c.id}',-2)">-2</button>
+              <input id="s_${c.id}" type="number" step="0.5" value="${Number(c.start_sec).toFixed(1)}" style="width:60px;text-align:center;padding:2px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:11px">
+              <button class="trim-btn" onclick="nudge('s_${c.id}',2)">+2</button>
+            </div></div>
+            <div class="trim-row"><span>End:</span><div style="display:flex;gap:3px;align-items:center">
+              <button class="trim-btn" onclick="nudge('e_${c.id}',-2)">-2</button>
+              <input id="e_${c.id}" type="number" step="0.5" value="${Number(c.end_sec).toFixed(1)}" style="width:60px;text-align:center;padding:2px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:11px">
+              <button class="trim-btn" onclick="nudge('e_${c.id}',2)">+2</button>
+            </div></div>
+            <button class="modal-save" style="margin-top:6px;padding:6px;font-size:11px" onclick="rerender('${c.id}',this)">Re-render (0 API)</button>
+          </div>
+        </div></div>`}).join("")}catch(e){}
+}
+
+function toggleTrim(id){const p=$(`trim_${id}`);if(p)p.classList.toggle("show")}
+function nudge(id,d){const e=$(id);if(e)e.value=(Math.max(0,parseFloat(e.value||0)+d)).toFixed(1)}
+
+async function rerender(id,btn){
+  const s=parseFloat($(`s_${id}`).value),e=parseFloat($(`e_${id}`).value),o=btn.textContent;
+  btn.textContent="Rendering…";btn.disabled=true;
+  try{const r=await fetch(`/api/clips/${id}/rerender`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({start_sec:s,end_sec:e})});
+    if(!r.ok)throw new Error("Fail");refreshClips()}catch(err){alert(err.message)}finally{btn.textContent=o;btn.disabled=false}
+}
+
+async function copyTags(id,btn){
+  const c=(window._c||{})[id];if(!c)return;
+  const t=(c.hashtags||[]).join(" "),txt=t?`${c.title}\n\n${t}`:c.title;
+  try{await navigator.clipboard.writeText(txt)}catch(e){const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta)}
+  const o=btn.innerHTML;btn.innerHTML="✓ Copied!";setTimeout(()=>{btn.innerHTML=o},1500);
+}
+
+async function delClip(id){if(!confirm("Delete?"))return;await fetch(`/api/clips/${id}`,{method:"DELETE"});refreshClips()}
+
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+init();
+</script>
+</body>
+</html>
