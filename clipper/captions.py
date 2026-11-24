@@ -121,12 +121,13 @@ def build_overlay_ass(
     words: Optional[list[WordTiming]] = None,
     hook_text: str = "",
     watermark: str = "",
+    watermark_pos: str = "bottom_center",
 ) -> Optional[Path]:
     """
     Create a single ASS overlay script containing any combination of:
     - Animated word-by-word Submagic-style captions
     - 3-second viral hook title banner
-    - Subtle channel handle watermark
+    - Subtle channel handle / creator name watermark around the bottom of the screen
     Returns None if no overlays are active.
     """
     has_captions = bool(words)
@@ -143,9 +144,25 @@ def build_overlay_ass(
     elif layout == "facecam_top":
         cap_margin_v = 340   # Lower gameplay zone
         hook_margin_v = 655  # Cleanly at the split seam below top facecam
+    elif layout in ("horizontal_blur", "horizontal_black"):
+        cap_margin_v = 380   # In lower area cleanly below the centered horizontal video
+        hook_margin_v = 150  # In upper area above the centered horizontal video
     else:
         cap_margin_v = 350   # Sweet spot above Shorts/TikTok bottom UI
         hook_margin_v = 135
+
+    # Determine watermark alignment (2 = Bottom Center, 3 = Bottom Right, 1 = Bottom Left)
+    wm_pos = (watermark_pos or "bottom_center").lower()
+    if "right" in wm_pos:
+        wm_align = 3
+    elif "left" in wm_pos:
+        wm_align = 1
+    elif "top" in wm_pos:
+        wm_align = 9
+    else:
+        wm_align = 2  # bottom center default
+
+    wm_margin_v = 80 if wm_align in (1, 2, 3) else 56
 
     header = f"""[Script Info]
 ScriptType: v4.00+
@@ -158,7 +175,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Caption,Arial,74,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,7,3,2,60,60,{cap_margin_v},1
 Style: Hook,Arial,54,&H00FFFFFF,&H00FFFFFF,&H55000000,&H55000000,-1,0,0,0,100,100,0,0,3,16,0,8,70,70,{hook_margin_v},1
-Style: Watermark,Arial,30,&H66FFFFFF,&H66FFFFFF,&H99000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,0,9,30,36,56,1
+Style: Watermark,Arial,34,&H30FFFFFF,&H30FFFFFF,&H80000000,&H90000000,-1,0,0,0,100,100,0,0,1,2,1,{wm_align},40,40,{wm_margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

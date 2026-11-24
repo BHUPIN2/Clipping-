@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import threading
 import time
+import uuid
 import webbrowser
 from pathlib import Path
 from typing import Literal, Optional
@@ -16,23 +18,25 @@ if str(BASE_DIR) not in sys.path:
 
 import uvicorn
 from dotenv import dotenv_values
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from clipper.ai import default_gameplay_box, detect_facecam_box
 from clipper.pipeline import ClipPipeline, ClipSettings
-from clipper.renderer import CropBox
-from clipper.youtube import capture_preview_frame, inspect_youtube_url
+from clipper.renderer import CropBox, probe_video_full
+from clipper.youtube import VideoInfo, capture_preview_frame, inspect_youtube_url
 
 STATIC_DIR = BASE_DIR / "static"
 CLIPS_DIR = BASE_DIR / "clips"
 PREVIEWS_DIR = BASE_DIR / ".work" / "previews"
+UPLOAD_DIR = BASE_DIR / ".work" / "uploads"
 ENV_FILE = BASE_DIR / ".env"
 
 CLIPS_DIR.mkdir(parents=True, exist_ok=True)
 PREVIEWS_DIR.mkdir(parents=True, exist_ok=True)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="ViralClip", version="2.0.0")
 pipeline = ClipPipeline(BASE_DIR)
@@ -82,7 +86,13 @@ class DetectFacecamRequest(BaseModel):
 class StartClipRequest(BaseModel):
     url: str
     api_key: Optional[str] = None
-    layout: Literal["facecam_top", "facecam_bottom", "no_facecam"] = "facecam_top"
+    layout: Literal[
+        "facecam_top",
+        "facecam_bottom",
+        "no_facecam",
+        "horizontal_blur",
+        "horizontal_black",
+    ] = "facecam_top"
     facecam: Optional[BoxModel] = None
     gameplay: Optional[BoxModel] = None
     lookback_minutes: int = Field(default=30, ge=5, le=180)
@@ -92,6 +102,7 @@ class StartClipRequest(BaseModel):
     captions: bool = True
     loudnorm: bool = True
     watermark: str = ""
+    watermark_pos: Literal["bottom_center", "bottom_right", "bottom_left"] = "bottom_center"
     hook_banner: bool = False
     interval_minutes: int = Field(default=15, ge=5, le=60)
 
@@ -115,6 +126,7 @@ def _req_to_settings(req: StartClipRequest) -> ClipSettings:
         captions=req.captions,
         loudnorm=req.loudnorm,
         watermark=req.watermark.strip(),
+        watermark_pos=req.watermark_pos,
         hook_banner=req.hook_banner,
     )
 
@@ -148,11 +160,84 @@ def save_config(req: ConfigRequest) -> dict:
 def inspect_video(req: InspectRequest) -> dict:
     url = req.url.strip()
     if not url:
-        raise HTTPException(status_code=400, detail="Please paste a YouTube link.")
+        raise HTTPException(status_code=400, detail="Please paste a YouTube link or select an uploaded video.")
 
     api_key = (req.api_key or "").strip() or _load_saved_api_key()
     if req.api_key and req.api_key.strip():
         _save_api_key(req.api_key)
+
+    is_local = url.startswith("file://") or Path(url).exists()
+    cached = pipeline.get_cached_video(url)
+    if cached and cached.raw_info.get("is_local"):
+        is_local = True
+
+    if is_local:
+        video = cached
+        if video is None:
+            local_path = Path(url.replace("file://", "")).resolve()
+            if not local_path.exists():
+                raise HTTPException(status_code=404, detail="Uploaded video file not found.")
+            try:
+                w, h, duration, has_audio = probe_video_full(local_path)
+            except Exception as exc:
+                raise HTTPException(status_code=400, detail=f"Cannot inspect video: {exc}")
+            video = VideoInfo(
+                video_id=f"upload_{int(time.time())}",
+                url=f"file://{local_path}",
+                title=local_path.stem.replace("_", " ").title(),
+                channel="Uploaded Video",
+                duration=duration,
+                is_live=False,
+                live_status="not_live",
+                thumbnail="",
+                width=w,
+                height=h,
+                heatmap=[],
+                raw_info={"local_path": str(local_path), "is_local": True},
+            )
+            pipeline.cache_video(video)
+
+        preview_name = f"{video.video_id}_{int(time.time() * 1000)}.jpg"
+        preview_path = PREVIEWS_DIR / preview_name
+        local_path = Path(video.raw_info.get("local_path") or url.replace("file://", "")).resolve()
+        seek_sec = max(0.0, min(video.duration - 0.5, video.duration * req.seek_ratio)) if video.duration > 1.0 else 0.0
+
+        try:
+            cmd = [
+                "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                "-ss", f"{seek_sec:.2f}",
+                "-i", str(local_path),
+                "-frames:v", "1",
+                "-q:v", "3",
+                str(preview_path),
+            ]
+            subprocess.run(cmd, check=True)
+            from PIL import Image
+            with Image.open(preview_path) as img:
+                frame_w, frame_h = img.size
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Could not capture frame from uploaded video: {exc}")
+
+        facecam = {"x": 0.02, "y": 0.62, "w": 0.28, "h": 0.34}
+        gameplay = default_gameplay_box(frame_w, frame_h)
+
+        return {
+            "video_id": video.video_id,
+            "url": video.url,
+            "title": video.title,
+            "channel": video.channel,
+            "duration": video.duration,
+            "is_live": False,
+            "has_heatmap": False,
+            "preview_filename": preview_name,
+            "preview_url": f"/previews/{preview_name}",
+            "frame_width": frame_w,
+            "frame_height": frame_h,
+            "facecam": facecam,
+            "gameplay": gameplay,
+            "can_auto_detect": bool(api_key),
+            "is_local": True,
+        }
 
     try:
         video = pipeline.get_cached_video(url) if req.reuse_cache else None
@@ -174,6 +259,7 @@ def inspect_video(req: InspectRequest) -> dict:
 
     return {
         "video_id": video.video_id,
+        "url": video.url,
         "title": video.title,
         "channel": video.channel,
         "duration": video.duration,
@@ -186,6 +272,96 @@ def inspect_video(req: InspectRequest) -> dict:
         "facecam": facecam,
         "gameplay": gameplay,
         "can_auto_detect": bool(api_key),
+        "is_local": False,
+    }
+
+
+@app.post("/api/upload")
+async def upload_video(file: UploadFile = File(...), api_key: Optional[str] = Form(None)) -> dict:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Please select a video file.")
+    ext = Path(file.filename).suffix.lower()
+    allowed = {".mp4", ".mov", ".mkv", ".webm", ".avi", ".ts", ".flv", ".m4v"}
+    if ext not in allowed:
+        raise HTTPException(status_code=400, detail=f"Unsupported format '{ext}'. Please upload an MP4, MOV, MKV, or WebM file.")
+
+    file_id = uuid.uuid4().hex[:10]
+    safe_name = f"{file_id}_{Path(file.filename).name}"
+    target_path = UPLOAD_DIR / safe_name
+
+    try:
+        with target_path.open("wb") as buf:
+            while chunk := await file.read(1024 * 1024 * 2):
+                buf.write(chunk)
+    except Exception as exc:
+        target_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Failed to save video: {exc}")
+
+    try:
+        w, h, duration, has_audio = probe_video_full(target_path)
+    except Exception as exc:
+        target_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=f"Invalid or unreadable video file: {exc}")
+
+    preview_name = f"upload_{file_id}_{int(time.time() * 1000)}.jpg"
+    preview_path = PREVIEWS_DIR / preview_name
+    seek_sec = max(0.0, min(duration - 0.5, duration * 0.25)) if duration > 1.0 else 0.0
+
+    try:
+        cmd = [
+            "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+            "-ss", f"{seek_sec:.2f}",
+            "-i", str(target_path),
+            "-frames:v", "1",
+            "-q:v", "3",
+            str(preview_path),
+        ]
+        subprocess.run(cmd, check=True)
+        from PIL import Image
+        with Image.open(preview_path) as img:
+            frame_w, frame_h = img.size
+    except Exception:
+        frame_w, frame_h = w, h
+
+    video = VideoInfo(
+        video_id=f"upload_{file_id}",
+        url=f"file://{target_path.resolve()}",
+        title=Path(file.filename).stem.replace("_", " ").title(),
+        channel="Uploaded Video",
+        duration=duration,
+        is_live=False,
+        live_status="not_live",
+        thumbnail="",
+        width=frame_w,
+        height=frame_h,
+        heatmap=[],
+        raw_info={"local_path": str(target_path.resolve()), "is_local": True},
+    )
+    pipeline.cache_video(video)
+
+    effective_api_key = (api_key or "").strip() or _load_saved_api_key()
+    if api_key and api_key.strip():
+        _save_api_key(api_key)
+
+    facecam = {"x": 0.02, "y": 0.62, "w": 0.28, "h": 0.34}
+    gameplay = default_gameplay_box(frame_w, frame_h)
+
+    return {
+        "video_id": video.video_id,
+        "url": video.url,
+        "title": video.title,
+        "channel": video.channel,
+        "duration": video.duration,
+        "is_live": False,
+        "has_heatmap": False,
+        "preview_filename": preview_name,
+        "preview_url": f"/previews/{preview_name}",
+        "frame_width": frame_w,
+        "frame_height": frame_h,
+        "facecam": facecam,
+        "gameplay": gameplay,
+        "can_auto_detect": bool(effective_api_key),
+        "is_local": True,
     }
 
 
@@ -333,4 +509,4 @@ if __name__ == "__main__":
     if os.environ.get("NO_BROWSER") != "1":
         threading.Thread(target=_open_browser, args=(port,), daemon=True).start()
     print(f"\n  ViralClip is running at http://127.0.0.1:{port}\n")
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")

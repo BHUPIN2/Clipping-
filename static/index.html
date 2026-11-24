@@ -453,64 +453,428 @@
     .toggle-label input { accent-color: var(--primary); width: 14px; height: 14px; }
 
     /* ============================================================
-       Bento Stats Grid
+       Mode Switcher (Regular Video vs Live Stream)
     ============================================================ */
-    .bento-stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-      margin-bottom: 28px;
+    .mode-selector-wrap {
+      max-width: 720px;
+      margin: 0 auto 20px;
     }
 
-    @media (max-width: 700px) { .bento-stats { grid-template-columns: 1fr 1fr; } }
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
 
-    .bento-card {
+    .mode-tab {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 20px;
-      transition: all 0.18s;
-      position: relative;
-      overflow: hidden;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.18s ease;
+      color: var(--text-secondary);
+      font-family: var(--sans);
     }
 
-    .bento-card::before {
-      content: "";
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 2px;
-      background: linear-gradient(90deg, var(--primary), var(--cyan));
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .bento-card:hover {
-      border-color: #3f3f46;
+    .mode-tab:hover {
       background: var(--bg-card-hover);
+      border-color: #3f3f46;
+      color: var(--text);
     }
 
-    .bento-card:hover::before { opacity: 1; }
-
-    .bento-icon {
-      font-size: 20px;
-      margin-bottom: 12px;
+    .mode-tab.active {
+      background: var(--primary-surface);
+      border-color: var(--primary);
+      box-shadow: 0 0 20px var(--primary-glow);
+      color: var(--text);
     }
 
-    .bento-val {
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
+    .mode-tab-icon {
+      font-size: 24px;
       line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .mode-tab-title {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .mode-tab-sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .mode-tab.active .mode-tab-sub {
+      color: #c4b5fd;
+    }
+
+    /* Sub-tabs for Regular Video (YouTube Link vs Upload File) */
+    .sub-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+      justify-content: center;
+    }
+
+    .sub-tab {
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--bg-raised);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .sub-tab:hover {
+      color: var(--text);
+      border-color: #3f3f46;
+    }
+
+    .sub-tab.active {
+      color: #fff;
+      background: var(--primary);
+      border-color: var(--primary);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    /* Upload Dropzone */
+    .upload-dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-xl);
+      background: var(--bg-card);
+      padding: 34px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .upload-dropzone:hover,
+    .upload-dropzone.dragover {
+      border-color: var(--primary);
+      background: var(--primary-surface);
+      box-shadow: 0 0 24px var(--primary-glow);
+    }
+
+    .drop-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+      line-height: 1;
+    }
+
+    .drop-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
       margin-bottom: 4px;
     }
 
-    .bento-label {
+    .drop-browse {
+      color: var(--primary);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .drop-sub {
       font-size: 12px;
-      font-weight: 600;
       color: var(--text-muted);
       font-family: var(--mono);
+    }
+
+    .upload-progress-wrap {
+      margin: 14px auto 0;
+      max-width: 320px;
+      background: var(--bg-raised);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      height: 8px;
+      position: relative;
+    }
+
+    .upload-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--cyan));
+      transition: width 0.15s;
+      border-radius: var(--radius-full);
+    }
+
+    .upload-progress-text {
+      display: block;
+      margin-top: 6px;
+      font-size: 11.5px;
+      font-family: var(--mono);
+      color: var(--primary);
+      text-align: center;
+    }
+
+    /* Dedicated Watermark & Creator Name Card */
+    .watermark-card {
+      max-width: 720px;
+      margin: 16px auto 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      transition: all 0.2s;
+    }
+
+    .watermark-card:hover {
+      border-color: #3f3f46;
+    }
+
+    .watermark-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .watermark-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .watermark-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    .watermark-inputs {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .wm-field {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .wm-field label {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+      font-family: var(--mono);
+    }
+
+    .wm-field input,
+    .wm-field select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-raised);
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--sans);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .wm-field input:focus,
+    .wm-field select:focus {
+      border-color: var(--primary);
+    }
+
+    /* ============================================================
+       Video Cropping & Framing Selector (Vertical vs Horizontal)
+    ============================================================ */
+    .crop-layout-card {
+      max-width: 720px;
+      margin: 16px auto 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      transition: all 0.2s;
+    }
+
+    .crop-layout-card:hover {
+      border-color: #3f3f46;
+    }
+
+    .crop-layout-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .crop-layout-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .crop-layout-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    /* Main Category Toggle: Vertical vs Horizontal */
+    .crop-cat-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .crop-cat-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+      color: var(--text-secondary);
+      font-family: var(--sans);
+    }
+
+    .crop-cat-btn:hover {
+      border-color: #3f3f46;
+      color: var(--text);
+    }
+
+    .crop-cat-btn.active {
+      border-color: var(--cyan);
+      background: rgba(6, 182, 212, 0.08);
+      box-shadow: 0 0 16px var(--cyan-glow);
+      color: var(--text);
+    }
+
+    .crop-cat-icon {
+      font-size: 20px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .crop-cat-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .crop-cat-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .crop-cat-btn.active .crop-cat-sub {
+      color: #a5f3fc;
+    }
+
+    /* Sub-options for Vertical and Horizontal */
+    .crop-sub-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .crop-sub-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+      color: var(--text-secondary);
+      font-family: var(--sans);
+    }
+
+    .crop-sub-btn:hover {
+      border-color: #3f3f46;
+      color: var(--text);
+    }
+
+    .crop-sub-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-surface);
+      box-shadow: 0 0 14px var(--primary-glow);
+      color: var(--text);
+    }
+
+    .sub-btn-icon {
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .sub-btn-name {
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sub-btn-desc {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .crop-sub-btn.active .sub-btn-desc {
+      color: #c4b5fd;
+    }
+
+    .horizontal-notice {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(9, 9, 11, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--cyan);
+      border-radius: var(--radius-full);
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #a5f3fc;
+      font-family: var(--mono);
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 0 16px var(--cyan-glow);
+      z-index: 5;
     }
 
     /* ============================================================
@@ -1175,29 +1539,193 @@
        Hero Section
   ============================================================= -->
   <section class="hero">
-    <div class="hero-eyebrow">AI-Powered Viral Engine</div>
-    <h1>Find the moments<br>that break the internet.</h1>
-    <p class="hero-sub">Drop any YouTube link. AI detects peak viral clips, formats 9:16 vertical shorts with captions, tracking, and loudness — all locally.</p>
+    <div class="hero-eyebrow">AI Viral Shorts Engine</div>
+    <h1>Make Viral Shorts in Seconds</h1>
+    <p class="hero-sub">Choose a regular video, upload your own file, or clip a live stream. Formatted for 9:16 vertical with animated captions, facecam split or AI tracking, and your bottom watermark.</p>
   </section>
 
   <!-- ============================================================
-       Command Bar (URL Input)
+       Source Selector: Mode Switcher (Regular Video vs Live Stream)
   ============================================================= -->
-  <div class="command-bar">
-    <div class="cmd-input-row">
-      <span class="cmd-prefix">&gt;_</span>
-      <input id="urlInput" type="text" placeholder="Paste YouTube link here…" autocomplete="off" />
-      <button id="goBtn" class="cmd-submit" onclick="handleGo()">Make clips</button>
+  <div class="mode-selector-wrap">
+    <div class="mode-tabs">
+      <button id="tabRegular" class="mode-tab active" onclick="switchMode('regular')">
+        <span class="mode-tab-icon">🎬</span>
+        <div>
+          <div class="mode-tab-title">Regular Video</div>
+          <div class="mode-tab-sub">YouTube URL or upload video file</div>
+        </div>
+      </button>
+      <button id="tabLive" class="mode-tab" onclick="switchMode('live')">
+        <span class="mode-tab-icon">🔴</span>
+        <div>
+          <div class="mode-tab-title">Live Stream</div>
+          <div class="mode-tab-sub">YouTube live stream link</div>
+        </div>
+      </button>
     </div>
-    <div class="cmd-toolbar">
-      <div class="toolbar-left">
-        <button id="layoutChip" class="chip active" onclick="cycleLayout()">
-          <span id="layoutEmoji">👤</span> <span id="layoutText">Facecam Top</span>
-        </button>
-        <div class="chip-sep"></div>
-        <button class="chip" onclick="toggleOpts()">⚙ Options</button>
+
+    <!-- Regular Video Section -->
+    <div id="regularPanel">
+      <div class="sub-tabs">
+        <button id="subTabUrl" class="sub-tab active" onclick="switchSubMode('url')">🔗 YouTube Link</button>
+        <button id="subTabUpload" class="sub-tab" onclick="switchSubMode('upload')">📁 Upload Video File</button>
       </div>
-      <span style="font-size:11px; color:var(--text-muted); font-family:var(--mono);">enter → inspect</span>
+
+      <!-- YouTube URL Input -->
+      <div id="urlInputContainer" class="command-bar">
+        <div class="cmd-input-row">
+          <span class="cmd-prefix">&gt;_</span>
+          <input id="urlInput" type="text" placeholder="Paste YouTube link (e.g. https://www.youtube.com/watch?v=...)" autocomplete="off" />
+          <button id="goBtn" class="cmd-submit" onclick="handleGo()">Make clips</button>
+        </div>
+        <div class="cmd-toolbar">
+          <div class="toolbar-left">
+            <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Layout:</span>
+            <span id="activeLayoutBadge" class="chip active" style="cursor:default;">👤 Facecam Top</span>
+            <div class="chip-sep"></div>
+            <button class="chip" onclick="toggleOpts()">⚙ Advanced Options</button>
+          </div>
+          <span style="font-size:11px; color:var(--text-muted); font-family:var(--mono);">enter → inspect</span>
+        </div>
+      </div>
+
+      <!-- File Upload Dropzone -->
+      <div id="uploadContainer" style="display:none; margin-bottom: 20px;">
+        <div class="upload-dropzone" id="dropZone" onclick="$('fileInput').click()">
+          <input type="file" id="fileInput" accept="video/mp4,video/quicktime,video/x-matroska,video/webm" style="display:none" onchange="handleFileSelect(event)">
+          <div class="drop-icon">📁</div>
+          <div class="drop-title">Drop your regular video here, or <span class="drop-browse">browse files</span></div>
+          <div class="drop-sub">Supports MP4, MOV, MKV, WebM</div>
+          <div id="uploadProgress" class="upload-progress-wrap" style="display:none;">
+            <div class="upload-progress-bar" id="uploadProgressBar"></div>
+          </div>
+          <span id="uploadProgressLabel" class="upload-progress-text" style="display:none;">Uploading… 0%</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+          <span id="activeLayoutBadgeUpload" class="chip active" style="cursor:default;">👤 Facecam Top</span>
+          <button class="chip" onclick="toggleOpts()">⚙ Advanced Options</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Stream Section -->
+    <div id="livePanel" style="display:none;">
+      <div class="command-bar">
+        <div class="cmd-input-row">
+          <span class="cmd-prefix">🔴</span>
+          <input id="liveUrlInput" type="text" placeholder="Paste YouTube Live Stream link here…" autocomplete="off" />
+          <button id="liveGoBtn" class="cmd-submit" onclick="handleGo()">Clip Stream</button>
+        </div>
+        <div class="cmd-toolbar">
+          <div class="toolbar-left">
+            <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Layout:</span>
+            <span id="activeLayoutBadgeLive" class="chip active" style="cursor:default;">👤 Facecam Top</span>
+            <div class="chip-sep"></div>
+            <button class="chip" onclick="toggleOpts()">⚙ Advanced Options</button>
+          </div>
+          <span style="font-size:11px; color:var(--red); font-family:var(--mono);">🔴 live stream DVR</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Video Cropping & Framing Selector (Vertical vs Horizontal)
+    ============================================================= -->
+    <div class="crop-layout-card">
+      <div class="crop-layout-header">
+        <div class="crop-layout-title">
+          <span>📐</span> Video Cropping &amp; Framing (Output: 9:16 Vertical)
+        </div>
+        <span class="crop-layout-hint">Select how your footage is framed in vertical</span>
+      </div>
+
+      <!-- Main Category: Vertical vs Horizontal -->
+      <div class="crop-cat-row">
+        <button id="catVerticalBtn" class="crop-cat-btn active" onclick="setLayoutCategory('vertical')">
+          <span class="crop-cat-icon">📱</span>
+          <div>
+            <div class="crop-cat-title">Vertical Cropping</div>
+            <div class="crop-cat-sub">Fills the 9:16 vertical screen</div>
+          </div>
+        </button>
+        <button id="catHorizontalBtn" class="crop-cat-btn" onclick="setLayoutCategory('horizontal')">
+          <span class="crop-cat-icon">📺</span>
+          <div>
+            <div class="crop-cat-title">Horizontal Framing</div>
+            <div class="crop-cat-sub">Keeps full 16:9 frame (Host &amp; Guest side-by-side)</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Vertical Sub-options -->
+      <div id="verticalSubOptions" class="crop-sub-row">
+        <button id="optFacecamTop" class="crop-sub-btn active" onclick="setLayout('facecam_top')">
+          <span class="sub-btn-icon">👤</span>
+          <div>
+            <div class="sub-btn-name">Facecam Top</div>
+            <div class="sub-btn-desc">Cam on top + gameplay/video on bottom</div>
+          </div>
+        </button>
+        <button id="optFacecamBottom" class="crop-sub-btn" onclick="setLayout('facecam_bottom')">
+          <span class="sub-btn-icon">🎮</span>
+          <div>
+            <div class="sub-btn-name">Facecam Bottom</div>
+            <div class="sub-btn-desc">Gameplay on top + facecam on bottom</div>
+          </div>
+        </button>
+        <button id="optNoFacecam" class="crop-sub-btn" onclick="setLayout('no_facecam')">
+          <span class="sub-btn-icon">🎯</span>
+          <div>
+            <div class="sub-btn-name">No Facecam (Full 9:16)</div>
+            <div class="sub-btn-desc">Single crop with local AI speaker tracking</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Horizontal Sub-options -->
+      <div id="horizontalSubOptions" class="crop-sub-row" style="display:none;">
+        <button id="optHBlur" class="crop-sub-btn" onclick="setLayout('horizontal_blur')">
+          <span class="sub-btn-icon">✨</span>
+          <div>
+            <div class="sub-btn-name">Blurred Zoomed Background</div>
+            <div class="sub-btn-desc">Full horizontal video + aesthetic blurred background</div>
+          </div>
+        </button>
+        <button id="optHBlack" class="crop-sub-btn" onclick="setLayout('horizontal_black')">
+          <span class="sub-btn-icon">⬛</span>
+          <div>
+            <div class="sub-btn-name">Black Bars (Letterbox)</div>
+            <div class="sub-btn-desc">Full horizontal video + clean black bars top &amp; bottom</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Dedicated Watermark & Name Option (Bottom of Screen)
+    ============================================================= -->
+    <div class="watermark-card">
+      <div class="watermark-header">
+        <div class="watermark-title">
+          <span>🏷️</span> Watermark &amp; Name (Bottom of Screen)
+        </div>
+        <span class="watermark-hint">Adds your name to the bottom of the video</span>
+      </div>
+      <div class="watermark-inputs">
+        <div class="wm-field">
+          <label>Your Name / Channel Handle</label>
+          <input id="watermarkInput" type="text" placeholder="e.g. Alex Rivers or @channel" oninput="renderPreview()" />
+        </div>
+        <div class="wm-field" style="max-width: 190px;">
+          <label>Position</label>
+          <select id="watermarkPosSelect" onchange="renderPreview()">
+            <option value="bottom_center" selected>Bottom Center</option>
+            <option value="bottom_right">Bottom Right</option>
+            <option value="bottom_left">Bottom Left</option>
+          </select>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1241,35 +1769,8 @@
       <label class="toggle-label"><input id="captionsToggle" type="checkbox" checked onchange="renderPreview()"> Animated captions</label>
       <label class="toggle-label"><input id="hookToggle" type="checkbox" onchange="renderPreview()"> 3s hook banner</label>
       <label class="toggle-label"><input id="loudnormToggle" type="checkbox" checked> Loudness norm</label>
-      <label class="toggle-label" style="gap:4px;"><span>Watermark:</span> <input id="watermarkInput" type="text" placeholder="@handle" style="width:100px; padding:3px 6px; border-radius:6px; border:1px solid var(--border); background:var(--bg-raised); color:var(--text); font-size:11px;" oninput="renderPreview()"></label>
     </div>
   </div>
-
-  <!-- ============================================================
-       Bento Stats
-  ============================================================= -->
-  <section class="bento-stats">
-    <div class="bento-card">
-      <div class="bento-icon">📡</div>
-      <div id="statLive" class="bento-val">—</div>
-      <div class="bento-label">Live Streams</div>
-    </div>
-    <div class="bento-card">
-      <div class="bento-icon">✂️</div>
-      <div id="statClips" class="bento-val">0</div>
-      <div class="bento-label">Clips Saved</div>
-    </div>
-    <div class="bento-card">
-      <div class="bento-icon">🎯</div>
-      <div class="bento-val">Local</div>
-      <div class="bento-label">AI Tracking</div>
-    </div>
-    <div class="bento-card">
-      <div class="bento-icon">⚡</div>
-      <div class="bento-val">0ms</div>
-      <div class="bento-label">A/V Sync</div>
-    </div>
-  </section>
 
   <!-- ============================================================
        Info Cards (Activity + AI)
@@ -1319,8 +1820,9 @@
         <div id="studioTitle" class="studio-title"></div>
         <div id="studioMeta" class="studio-meta"></div>
       </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn-ghost" onclick="autoDetect()">✨ Auto-Detect</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span id="studioLayoutBadge" class="nav-tag" style="font-size:11px; padding:6px 12px;">👤 Facecam Top</span>
+        <button id="studioAutoDetectBtn" class="btn-ghost" onclick="autoDetect()">✨ Auto-Detect</button>
         <button class="btn-glow" onclick="startJob()">🚀 Start Clipping</button>
       </div>
     </div>
@@ -1330,6 +1832,7 @@
           <canvas id="previewCanvas"></canvas>
           <div id="fcBox" class="crop-box crop-facecam"><span class="box-tag">cam</span><div class="handle handle-br"></div><div class="handle handle-tl"></div></div>
           <div id="gpBox" class="crop-box crop-gameplay"><span class="box-tag">game</span><div class="handle handle-br"></div><div class="handle handle-tl"></div></div>
+          <div id="horizontalFrameNotice" class="horizontal-notice" style="display:none;">📺 Full horizontal frame kept (Host &amp; Guest side-by-side)</div>
         </div>
         <div class="seek-row">
           <span>seek:</span>
@@ -1398,7 +1901,18 @@
 ============================================================= -->
 <script>
 const $=id=>document.getElementById(id);
-const S={video:null,img:null,layout:"facecam_top",fc:{x:.02,y:.62,w:.28,h:.34},gp:{x:.25,y:0,w:.5,h:1},dragging:false,jobTimer:null};
+const S={
+  video:null,
+  img:null,
+  layout:"facecam_top",
+  layoutCategory:"vertical",
+  mode:"regular",
+  subMode:"url",
+  fc:{x:.02,y:.62,w:.28,h:.34},
+  gp:{x:.25,y:0,w:.5,h:1},
+  dragging:false,
+  jobTimer:null
+};
 
 function openModal(){$("modal").classList.add("open")}
 function closeModal(){$("modal").classList.remove("open")}
@@ -1406,23 +1920,217 @@ function toggleOpts(){$("optsDrawer").classList.toggle("open")}
 function scrollToLib(){$("libSection").scrollIntoView({behavior:"smooth"})}
 function openClipsFolder(){fetch("/api/open-folder",{method:"POST"})}
 
-function cycleLayout(){
-  const m=["facecam_top","facecam_bottom","no_facecam"];
-  S.layout=m[(m.indexOf(S.layout)+1)%m.length];
-  const e=$("layoutEmoji"),t=$("layoutText");
-  if(S.layout==="facecam_top"){e.textContent="👤";t.textContent="Facecam Top";$("fcBox").style.display="block";$("gpBox").style.display="block"}
-  else if(S.layout==="facecam_bottom"){e.textContent="🎮";t.textContent="Facecam Bottom";$("fcBox").style.display="block";$("gpBox").style.display="block"}
-  else{e.textContent="🎯";t.textContent="No Facecam · AI Track";$("fcBox").style.display="none";$("gpBox").style.display="none"}
+function formatError(d){
+  if(!d) return "An unexpected error occurred.";
+  if(typeof d === "string") return d;
+  if(Array.isArray(d)){
+    return d.map(item => (item.msg || item.message || JSON.stringify(item))).join("\n");
+  }
+  if(d.detail){
+    return formatError(d.detail);
+  }
+  if(d.message) return d.message;
+  try {
+    return JSON.stringify(d, null, 2);
+  } catch(_) {
+    return String(d);
+  }
+}
+
+function switchMode(mode){
+  S.mode = mode;
+  $("tabRegular").classList.toggle("active", mode === "regular");
+  $("tabLive").classList.toggle("active", mode === "live");
+  $("regularPanel").style.display = mode === "regular" ? "block" : "none";
+  $("livePanel").style.display = mode === "live" ? "block" : "none";
+}
+
+function switchSubMode(sub){
+  S.subMode = sub;
+  $("subTabUrl").classList.toggle("active", sub === "url");
+  $("subTabUpload").classList.toggle("active", sub === "upload");
+  $("urlInputContainer").style.display = sub === "url" ? "block" : "none";
+  $("uploadContainer").style.display = sub === "upload" ? "block" : "none";
+}
+
+function setLayoutCategory(cat){
+  S.layoutCategory = cat;
+  $("catVerticalBtn").classList.toggle("active", cat === "vertical");
+  $("catHorizontalBtn").classList.toggle("active", cat === "horizontal");
+  $("verticalSubOptions").style.display = cat === "vertical" ? "grid" : "none";
+  $("horizontalSubOptions").style.display = cat === "horizontal" ? "grid" : "none";
+  if(cat === "horizontal"){
+    if(S.layout !== "horizontal_blur" && S.layout !== "horizontal_black"){
+      setLayout("horizontal_blur");
+    } else {
+      setLayout(S.layout);
+    }
+  } else {
+    if(S.layout === "horizontal_blur" || S.layout === "horizontal_black"){
+      setLayout("facecam_top");
+    } else {
+      setLayout(S.layout);
+    }
+  }
+}
+
+function setLayout(mode){
+  S.layout = mode;
+  const isH = mode === "horizontal_blur" || mode === "horizontal_black";
+  S.layoutCategory = isH ? "horizontal" : "vertical";
+  
+  $("catVerticalBtn").classList.toggle("active", !isH);
+  $("catHorizontalBtn").classList.toggle("active", isH);
+  $("verticalSubOptions").style.display = !isH ? "grid" : "none";
+  $("horizontalSubOptions").style.display = isH ? "grid" : "none";
+
+  $("optFacecamTop").classList.toggle("active", mode === "facecam_top");
+  $("optFacecamBottom").classList.toggle("active", mode === "facecam_bottom");
+  $("optNoFacecam").classList.toggle("active", mode === "no_facecam");
+  $("optHBlur").classList.toggle("active", mode === "horizontal_blur");
+  $("optHBlack").classList.toggle("active", mode === "horizontal_black");
+
+  const badgeMap = {
+    facecam_top: "👤 Facecam Top",
+    facecam_bottom: "🎮 Facecam Bottom",
+    no_facecam: "🎯 No Facecam (Full 9:16)",
+    horizontal_blur: "✨ Blurred BG (Host & Guest)",
+    horizontal_black: "⬛ Black Bars (Host & Guest)"
+  };
+  const label = badgeMap[mode] || mode;
+
+  ["activeLayoutBadge", "activeLayoutBadgeUpload", "activeLayoutBadgeLive", "studioLayoutBadge"].forEach(id => {
+    const el = $(id);
+    if(el) el.textContent = label;
+  });
+
+  const notice = $("horizontalFrameNotice");
+  const autoBtn = $("studioAutoDetectBtn");
+  if(isH){
+    $("fcBox").style.display = "none";
+    $("gpBox").style.display = "none";
+    if(notice) notice.style.display = "block";
+    if(autoBtn) autoBtn.style.display = "none";
+  } else if(mode === "no_facecam"){
+    $("fcBox").style.display = "none";
+    $("gpBox").style.display = "none";
+    if(notice) notice.style.display = "none";
+    if(autoBtn) autoBtn.style.display = "none";
+  } else {
+    $("fcBox").style.display = "block";
+    $("gpBox").style.display = "block";
+    if(notice) notice.style.display = "none";
+    if(autoBtn) autoBtn.style.display = "inline-flex";
+  }
+
   renderPreview();
 }
 
 $("urlInput").addEventListener("keydown",e=>{if(e.key==="Enter")handleGo()});
+if($("liveUrlInput")) $("liveUrlInput").addEventListener("keydown",e=>{if(e.key==="Enter")handleGo()});
 
 async function init(){
-  try{const r=await fetch("/api/config");const d=await r.json();
-    if(d.has_api_key){$("keyStatusNav").innerHTML="⚡ Connected";$("keyStatusNav").style.color="var(--green)";$("keyStatusNav").style.borderColor="rgba(34,197,94,0.3)"}
+  try{
+    const r=await fetch("/api/config");
+    const d=await r.json();
+    if(d.has_api_key){
+      $("keyStatusNav").innerHTML="⚡ Connected";
+      $("keyStatusNav").style.color="var(--green)";
+      $("keyStatusNav").style.borderColor="rgba(34,197,94,0.3)";
+    }
   }catch(e){}
+  initDropZone();
   refreshClips();
+}
+
+function initDropZone(){
+  const dz=$("dropZone");
+  if(!dz) return;
+  ["dragenter","dragover"].forEach(evt=>{
+    dz.addEventListener(evt,e=>{e.preventDefault();e.stopPropagation();dz.classList.add("dragover")});
+  });
+  ["dragleave","drop"].forEach(evt=>{
+    dz.addEventListener(evt,e=>{e.preventDefault();e.stopPropagation();dz.classList.remove("dragover")});
+  });
+  dz.addEventListener("drop",e=>{
+    const files=e.dataTransfer&&e.dataTransfer.files;
+    if(files&&files.length>0) uploadFile(files[0]);
+  });
+}
+
+function handleFileSelect(e){
+  const files=e.target.files;
+  if(files&&files.length>0) uploadFile(files[0]);
+}
+
+function uploadFile(file){
+  if(!file) return;
+  const pWrap=$("uploadProgress"),pBar=$("uploadProgressBar"),pLbl=$("uploadProgressLabel");
+  pWrap.style.display="block";
+  pLbl.style.display="block";
+  pBar.style.width="0%";
+  pLbl.textContent=`Uploading ${file.name}… 0%`;
+
+  const fd=new FormData();
+  fd.append("file", file);
+
+  const xhr=new XMLHttpRequest();
+  xhr.open("POST","/api/upload",true);
+
+  xhr.upload.onprogress=e=>{
+    if(e.lengthComputable){
+      const pct=Math.round((e.loaded/e.total)*100);
+      pBar.style.width=pct+"%";
+      pLbl.textContent=`Uploading ${file.name}… ${pct}%`;
+    }
+  };
+
+  xhr.onload=()=>{
+    pWrap.style.display="none";
+    pLbl.style.display="none";
+    if(xhr.status>=200&&xhr.status<300){
+      try{
+        const d=JSON.parse(xhr.responseText);
+        S.video={...d,url:d.url};
+        $("studio").classList.add("open");
+        $("studio").scrollIntoView({behavior:"smooth"});
+        $("studioTitle").textContent=d.title;
+        $("studioMeta").textContent=`${d.channel} · ${fmtDur(d.duration)} · Local Video`;
+        const img=new Image();
+        img.onload=()=>{
+          S.img=img;
+          const c=$("previewCanvas");
+          c.width=img.naturalWidth;
+          c.height=img.naturalHeight;
+          c.getContext("2d").drawImage(img,0,0);
+          if(d.facecam) S.fc=d.facecam;
+          if(d.gameplay) S.gp=d.gameplay;
+          syncBoxes();
+          renderPreview();
+        };
+        img.src=d.preview_url;
+      }catch(err){
+        alert("Upload error: "+err.message);
+      }
+    } else {
+      let msg="Upload failed";
+      try{
+        const parsed = JSON.parse(xhr.responseText);
+        msg = formatError(parsed);
+      }catch(_){
+        if(xhr.responseText) msg = xhr.responseText;
+      }
+      alert(msg);
+    }
+  };
+
+  xhr.onerror=()=>{
+    pWrap.style.display="none";
+    pLbl.style.display="none";
+    alert("Upload failed. Check your network connection.");
+  };
+
+  xhr.send(fd);
 }
 
 async function saveKey(){
@@ -1432,34 +2140,49 @@ async function saveKey(){
 }
 
 async function handleGo(){
-  const u=$("urlInput").value.trim();if(!u)return $("urlInput").focus();
-  if(!S.video||S.video.url!==u)await inspect();else startJob();
+  let u = "";
+  if(S.mode === "live"){
+    u = $("liveUrlInput").value.trim();
+    if(!u) return $("liveUrlInput").focus();
+  } else {
+    if(S.subMode === "upload"){
+      if(S.video && S.video.is_local) return startJob();
+      return $("fileInput").click();
+    }
+    u = $("urlInput").value.trim();
+    if(!u) return $("urlInput").focus();
+  }
+  if(!S.video || S.video.url !== u) await inspect(0.25, u);
+  else startJob();
 }
 
-async function inspect(seek=0.25){
-  const u=$("urlInput").value.trim();if(!u)return;
-  const btn=$("goBtn");btn.disabled=true;btn.textContent="Inspecting…";
+async function inspect(seek=0.25, overrideUrl=null){
+  const u = overrideUrl || (S.mode === "live" ? $("liveUrlInput").value.trim() : $("urlInput").value.trim());
+  if(!u) return;
+  const btn = S.mode === "live" ? $("liveGoBtn") : $("goBtn");
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Inspecting…";
   try{
     const r=await fetch("/api/inspect",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:u,seek_ratio:seek})});
-    const d=await r.json();if(!r.ok)throw new Error(d.detail||"Fail");
+    const d=await r.json();if(!r.ok)throw new Error(formatError(d));
     S.video={...d,url:u};
     $("studio").classList.add("open");$("studio").scrollIntoView({behavior:"smooth"});
     $("studioTitle").textContent=d.title;
     $("studioMeta").textContent=`${d.channel} · ${fmtDur(d.duration)} · ${d.is_live?"🔴 LIVE":"VOD"}`;
-    if(d.is_live){$("statLive").textContent="1";$("statLive").style.color="var(--red)"}
     const img=new Image();img.onload=()=>{S.img=img;const c=$("previewCanvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);if(d.facecam)S.fc=d.facecam;if(d.gameplay)S.gp=d.gameplay;syncBoxes();renderPreview()};
     img.src=d.preview_url;
-  }catch(e){alert(e.message)}finally{btn.disabled=false;btn.textContent="Make clips"}
+  }catch(e){alert(e.message)}finally{btn.disabled=false;btn.textContent=origText}
 }
 
-function seekFrame(v){$("seekLabel").textContent=Math.round(v*100)+"%";inspect(parseFloat(v))}
+function seekFrame(v){$("seekLabel").textContent=Math.round(v*100)+"%";inspect(parseFloat(v),S.video?S.video.url:null)}
 
 function fmtDur(s){s=Math.max(0,Math.round(s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return h?`${h}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`:`${m}:${String(ss).padStart(2,"0")}`}
 
 async function autoDetect(){
-  if(!S.video)return;const btn=$("goBtn");
+  if(!S.video)return;
   try{const r=await fetch("/api/detect-facecam",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({preview_filename:S.video.preview_filename})});
-    const d=await r.json();if(d.found&&d.facecam){S.fc=d.facecam;syncBoxes();renderPreview()}else alert("No facecam found")}catch(e){alert(e.message)}
+    const d=await r.json();if(!r.ok)throw new Error(formatError(d));if(d.found&&d.facecam){S.fc=d.facecam;syncBoxes();renderPreview()}else alert("No facecam found")}catch(e){alert(e.message)}
 }
 
 function syncBoxes(){
@@ -1470,17 +2193,104 @@ function syncBoxes(){
 function renderPreview(){
   const c=$("verticalCanvas"),ctx=c.getContext("2d"),W=1080,H=1920;
   ctx.fillStyle="#09090b";ctx.fillRect(0,0,W,H);
-  if(!S.img)return;const img=S.img,iw=img.naturalWidth,ih=img.naturalHeight;
-  if(S.layout==="no_facecam"){const cH=ih,cW=Math.round(cH*W/H),cX=Math.max(0,(iw-cW)/2);ctx.drawImage(img,cX,0,cW,cH,0,0,W,H)}
-  else{const fH=680,gH=1240,top=S.layout==="facecam_top";
-    ctx.drawImage(img,S.fc.x*iw,S.fc.y*ih,S.fc.w*iw,S.fc.h*ih,0,top?0:gH,W,fH);
-    ctx.drawImage(img,S.gp.x*iw,S.gp.y*ih,S.gp.w*iw,S.gp.h*ih,0,top?fH:0,W,gH);
-    ctx.fillStyle="#18181b";ctx.fillRect(0,top?fH-2:gH-2,W,4)}
-  if($("captionsToggle").checked){ctx.save();ctx.textAlign="center";ctx.font="bold 58px Inter,sans-serif";
-    const y=S.layout==="facecam_top"?1400:960;ctx.strokeStyle="#000";ctx.lineWidth=12;ctx.strokeText("VIRAL MOMENT 🔥",W/2,y);ctx.fillStyle="#facc15";ctx.fillText("VIRAL MOMENT 🔥",W/2,y);ctx.restore()}
-  if($("hookToggle").checked){ctx.save();ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(40,55,W-80,100);ctx.fillStyle="#fff";ctx.font="bold 40px Inter";ctx.textAlign="center";ctx.fillText("WAIT FOR IT…",W/2,124);ctx.restore()}
-  const wm=$("watermarkInput").value.trim();
-  if(wm){ctx.save();ctx.font="bold 28px sans-serif";ctx.fillStyle="rgba(255,255,255,.55)";ctx.textAlign="right";ctx.fillText(wm,W-36,H-50);ctx.restore()}
+  if(!S.img)return;
+  const img=S.img,iw=img.naturalWidth,ih=img.naturalHeight;
+
+  if(S.layout === "horizontal_blur"){
+    // Blurred background: scaled to cover full 1080x1920
+    ctx.save();
+    ctx.filter = "blur(24px) brightness(0.6)";
+    const scale = Math.max(W / iw, H / ih);
+    const bw = iw * scale, bh = ih * scale;
+    const bx = (W - bw) / 2, by = (H - bh) / 2;
+    ctx.drawImage(img, bx, by, bw, bh);
+    ctx.restore();
+
+    // Foreground 16:9 crisp video centered vertically (preserves host & guest side-by-side)
+    const fgH = Math.round(W * (ih / iw));
+    const fgY = Math.round((H - fgH) / 2);
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.65)";
+    ctx.shadowBlur = 24;
+    ctx.drawImage(img, 0, fgY, W, fgH);
+    ctx.restore();
+
+  } else if(S.layout === "horizontal_black"){
+    // Black bars top and bottom
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, W, H);
+
+    // Foreground 16:9 crisp video centered vertically
+    const fgH = Math.round(W * (ih / iw));
+    const fgY = Math.round((H - fgH) / 2);
+    ctx.drawImage(img, 0, fgY, W, fgH);
+
+  } else if(S.layout === "no_facecam"){
+    // Normal single-subject 9:16 crop
+    const cH = ih, cW = Math.round(cH * W / H), cX = Math.max(0, (iw - cW) / 2);
+    ctx.drawImage(img, cX, 0, cW, cH, 0, 0, W, H);
+
+  } else {
+    // Facecam top or bottom
+    const fH = 680, gH = 1240, top = S.layout === "facecam_top";
+    ctx.drawImage(img, S.fc.x * iw, S.fc.y * ih, S.fc.w * iw, S.fc.h * ih, 0, top ? 0 : gH, W, fH);
+    ctx.drawImage(img, S.gp.x * iw, S.gp.y * ih, S.gp.w * iw, S.gp.h * ih, 0, top ? fH : 0, W, gH);
+    ctx.fillStyle = "#18181b";
+    ctx.fillRect(0, top ? fH - 2 : gH - 2, W, 4);
+  }
+
+  // Captions
+  if($("captionsToggle").checked){
+    ctx.save();
+    ctx.textAlign="center";
+    ctx.font="bold 58px Inter,sans-serif";
+    let y = 1400;
+    if(S.layout === "facecam_bottom") y = 960;
+    else if(S.layout === "horizontal_blur" || S.layout === "horizontal_black") y = 1480;
+    ctx.strokeStyle="#000";ctx.lineWidth=12;
+    ctx.strokeText("VIRAL MOMENT 🔥",W/2,y);
+    ctx.fillStyle="#facc15";
+    ctx.fillText("VIRAL MOMENT 🔥",W/2,y);
+    ctx.restore();
+  }
+
+  // 3s Hook banner
+  if($("hookToggle").checked){
+    ctx.save();
+    let hookY = 55;
+    if(S.layout === "horizontal_blur" || S.layout === "horizontal_black") hookY = 280;
+    ctx.fillStyle="rgba(0,0,0,.78)";
+    ctx.fillRect(40, hookY, W-80, 100);
+    ctx.fillStyle="#fff";
+    ctx.font="bold 40px Inter";
+    ctx.textAlign="center";
+    ctx.fillText("WAIT FOR IT…", W/2, hookY + 68);
+    ctx.restore();
+  }
+  
+  // Render watermark at the bottom of the screen
+  const wm=$("watermarkInput") ? $("watermarkInput").value.trim() : "";
+  if(wm){
+    ctx.save();
+    ctx.font="bold 34px Inter, sans-serif";
+    ctx.shadowColor="rgba(0,0,0,0.85)";
+    ctx.shadowBlur=10;
+    ctx.shadowOffsetX=1;
+    ctx.shadowOffsetY=2;
+    ctx.fillStyle="rgba(255,255,255,0.85)";
+    const pos=$("watermarkPosSelect") ? $("watermarkPosSelect").value : "bottom_center";
+    if(pos === "bottom_right"){
+      ctx.textAlign="right";
+      ctx.fillText(wm, W - 50, H - 75);
+    } else if(pos === "bottom_left"){
+      ctx.textAlign="left";
+      ctx.fillText(wm, 50, H - 75);
+    } else {
+      ctx.textAlign="center";
+      ctx.fillText(wm, W / 2, H - 75);
+    }
+    ctx.restore();
+  }
 }
 
 (function initDrag(){
@@ -1498,14 +2308,30 @@ function renderPreview(){
 
 async function startJob(){
   if(!S.video)return;
-  const p={url:S.video.url,layout:S.layout,facecam:S.fc,gameplay:S.gp,
-    max_clips:parseInt($("maxClipsSelect").value)||5,clip_length:$("clipLengthSelect").value,
-    topic_filter:$("topicInput").value.trim(),lookback_minutes:parseInt($("lookbackSelect").value)||30,
-    captions:$("captionsToggle").checked,hook_banner:$("hookToggle").checked,
-    loudnorm:$("loudnormToggle").checked,watermark:$("watermarkInput").value.trim()};
-  try{const r=await fetch("/api/clip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
-    const d=await r.json();if(!r.ok)throw new Error(d.detail||"Error");
-    $("jobCard").classList.add("open");$("jobCard").scrollIntoView({behavior:"smooth"});pollJob(d.job_id)}catch(e){alert(e.message)}
+  const wm = $("watermarkInput") ? $("watermarkInput").value.trim() : "";
+  const wmPos = $("watermarkPosSelect") ? $("watermarkPosSelect").value : "bottom_center";
+  const p={
+    url:S.video.url,
+    layout:S.layout,
+    facecam:S.fc,
+    gameplay:S.gp,
+    max_clips:parseInt($("maxClipsSelect").value)||5,
+    clip_length:$("clipLengthSelect").value,
+    topic_filter:$("topicInput").value.trim(),
+    lookback_minutes:parseInt($("lookbackSelect").value)||30,
+    captions:$("captionsToggle").checked,
+    hook_banner:$("hookToggle").checked,
+    loudnorm:$("loudnormToggle").checked,
+    watermark:wm,
+    watermark_pos:wmPos
+  };
+  try{
+    const r=await fetch("/api/clip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
+    const d=await r.json();if(!r.ok)throw new Error(formatError(d));
+    $("jobCard").classList.add("open");
+    $("jobCard").scrollIntoView({behavior:"smooth"});
+    pollJob(d.job_id);
+  }catch(e){alert(e.message)}
 }
 
 function pollJob(id){
@@ -1521,7 +2347,8 @@ function pollJob(id){
 
 async function refreshClips(){
   try{const r=await fetch("/api/clips");const d=await r.json();const clips=d.clips||[];
-    $("statClips").textContent=clips.length;$("metricClips").textContent=clips.length;
+    if($("statClips")) $("statClips").textContent=clips.length;
+    if($("metricClips")) $("metricClips").textContent=clips.length;
     if(!clips.length){$("clipsGrid").innerHTML="";$("emptyLib").style.display="block";return}
     $("emptyLib").style.display="none";
     window._c=Object.fromEntries(clips.map(c=>[c.id,c]));
@@ -1564,7 +2391,8 @@ async function rerender(id,btn){
   const s=parseFloat($(`s_${id}`).value),e=parseFloat($(`e_${id}`).value),o=btn.textContent;
   btn.textContent="Rendering…";btn.disabled=true;
   try{const r=await fetch(`/api/clips/${id}/rerender`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({start_sec:s,end_sec:e})});
-    if(!r.ok)throw new Error("Fail");refreshClips()}catch(err){alert(err.message)}finally{btn.textContent=o;btn.disabled=false}
+    const d=await r.json().catch(()=>null);
+    if(!r.ok)throw new Error(formatError(d||"Rerender failed"));refreshClips()}catch(err){alert(err.message)}finally{btn.textContent=o;btn.disabled=false}
 }
 
 async function copyTags(id,btn){

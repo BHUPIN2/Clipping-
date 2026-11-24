@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import subprocess
 import threading
 import time
 import uuid
@@ -21,6 +22,7 @@ from clipper.renderer import (
     CropBox,
     LayoutMode,
     RenderOptions,
+    render_horizontal_in_vertical_clip,
     render_tracked_vertical_clip,
     render_vertical_clip,
 )
@@ -63,6 +65,7 @@ class ClipSettings:
     captions: bool = True
     loudnorm: bool = True
     watermark: str = ""
+    watermark_pos: str = "bottom_center"
     hook_banner: bool = False
 
 
@@ -90,6 +93,7 @@ class RenderedClip:
     captions: bool = False
     loudnorm: bool = True
     watermark: str = ""
+    watermark_pos: str = "bottom_center"
     hook_banner: bool = False
 
 
@@ -232,16 +236,26 @@ class ClipPipeline:
 
         try:
             video = self.get_cached_video(url)
-            if video is None or video.is_live:
+            is_local = (
+                url.startswith("file://")
+                or (video and video.raw_info.get("is_local"))
+                or Path(url).exists()
+            )
+            if not is_local and (video is None or video.is_live):
                 self._log(job, "Fetching stream metadata from YouTube...", progress=6)
                 video = inspect_youtube_url(url)
                 self.cache_video(video)
+
+            if video is None and is_local:
+                raise RuntimeError("Local video metadata not found in cache. Please re-upload.")
 
             with self._lock:
                 job.source_title = video.title
                 job.is_live = video.is_live
 
-            if video.is_live:
+            if is_local or (video and video.raw_info.get("is_local")):
+                self._run_local_pipeline(job, video, api_key, settings, temp_dir)
+            elif video.is_live:
                 self._run_live_pipeline(job, video, api_key, settings, temp_dir)
             else:
                 self._run_vod_pipeline(job, video, api_key, settings, temp_dir)
@@ -254,6 +268,102 @@ class ClipPipeline:
                 job.logs.append(f"ERROR: {exc}")
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def _run_local_pipeline(
+        self,
+        job: JobState,
+        video: VideoInfo,
+        api_key: str,
+        settings: ClipSettings,
+        temp_dir: Path,
+    ) -> None:
+        raw_path_str = str(video.raw_info.get("local_path") or video.url.replace("file://", ""))
+        local_path = Path(raw_path_str).resolve()
+        if not local_path.exists():
+            raise FileNotFoundError(f"Uploaded video file not found at {local_path}")
+
+        self._log(job, f"Loaded local video: {video.title} ({_fmt_time(video.duration)})", progress=12)
+        audio_mp3 = temp_dir / "local_audio.mp3"
+        self._log(job, "Extracting audio track for virality analysis...", progress=18)
+
+        has_audio = False
+        try:
+            cmd = [
+                "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                "-i", str(local_path),
+                "-vn", "-acodec", "libmp3lame", "-b:a", "128k",
+                str(audio_mp3),
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            has_audio = res.returncode == 0 and audio_mp3.exists() and audio_mp3.stat().st_size > 1000
+        except Exception:
+            has_audio = False
+
+        moments: list[ViralMoment] = []
+        if has_audio and api_key and video.duration > 10.0:
+            self._log(job, "Analyzing audio with Gemini AI for viral hooks & moments...", progress=28)
+            try:
+                moments = find_viral_moments_from_audio(
+                    api_key=api_key,
+                    title=video.title,
+                    channel=video.channel,
+                    audio_path=audio_mp3,
+                    window_duration=video.duration,
+                    max_clips=settings.max_clips,
+                    clip_length=settings.clip_length,
+                    topic_filter=settings.topic_filter,
+                    progress_cb=lambda m: self._log(job, m, progress=34),
+                )
+            except Exception as e:
+                self._log(job, f"Gemini audio analysis notice: {e}. Falling back to smart video framing.", progress=36)
+                moments = []
+
+        if not moments:
+            self._log(job, "Formatting uploaded video into 9:16 vertical short with bottom watermark...", progress=40)
+            max_dur = 90.0 if settings.clip_length == "long" else (30.0 if settings.clip_length == "short" else 60.0)
+            clip_dur = min(video.duration, max_dur)
+            moments = [
+                ViralMoment(
+                    title=video.title,
+                    start_sec=0.0,
+                    end_sec=clip_dur,
+                    viral_score=9.5,
+                    reason="Full video formatted to 9:16 vertical short with bottom watermark.",
+                    hashtags=["#viral", "#shorts", "#trending", "#fyp"],
+                )
+            ]
+
+        self._log(
+            job,
+            f"Ready to render {len(moments)} vertical clip(s)...",
+            progress=45,
+            status="clipping",
+        )
+
+        def _cut_local_clip(idx: int, moment: ViralMoment, raw_mp4: Path) -> None:
+            dur = max(0.5, moment.end_sec - moment.start_sec)
+            cmd = [
+                "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                "-ss", f"{moment.start_sec:.3f}",
+                "-i", str(local_path),
+                "-t", f"{dur:.3f}",
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+                "-c:a", "aac", "-b:a", "192k",
+                "-avoid_negative_ts", "make_zero",
+                str(raw_mp4),
+            ]
+            subprocess.run(cmd, check=True)
+
+        self._render_moments(
+            job=job,
+            video=video,
+            api_key=api_key,
+            moments=moments,
+            settings=settings,
+            temp_dir=temp_dir,
+            download_fn=_cut_local_clip,
+            time_offset=0.0,
+        )
 
     def _run_vod_pipeline(
         self,
@@ -462,10 +572,27 @@ class ClipPipeline:
                 captions=settings.captions,
                 loudnorm=settings.loudnorm,
                 watermark=settings.watermark,
+                watermark_pos=settings.watermark_pos,
                 hook_text=moment.title if settings.hook_banner else "",
             )
 
-            if settings.layout == "no_facecam":
+            if settings.layout in ("horizontal_blur", "horizontal_black"):
+                sub_label = "Blurred Background" if settings.layout == "horizontal_blur" else "Black Bars"
+                self._log(
+                    job,
+                    f"[{i}/{total}] Rendering horizontal in 9:16 vertical ({sub_label})...",
+                    progress=base_pct + int(25 / total),
+                )
+                render_horizontal_in_vertical_clip(
+                    input_path=raw_mp4,
+                    output_path=final_mp4,
+                    layout=settings.layout,
+                    options=render_opts,
+                    progress_cb=lambda m, b=base_pct, idx=i: self._log(
+                        job, f"[{idx}/{total}] {m}", progress=b + int(35 / total)
+                    ),
+                )
+            elif settings.layout == "no_facecam":
                 self._log(
                     job,
                     f"[{i}/{total}] Live-tracking main subject & rendering 9:16...",
@@ -525,6 +652,7 @@ class ClipPipeline:
                 captions=settings.captions,
                 loudnorm=settings.loudnorm,
                 watermark=settings.watermark,
+                watermark_pos=settings.watermark_pos,
                 hook_banner=settings.hook_banner,
             )
             with self._lock:
@@ -560,7 +688,23 @@ class ClipPipeline:
         try:
             raw_mp4 = temp_dir / "raw_trim.mp4"
             source_url = target["source_url"]
-            if target.get("is_live_source"):
+            is_local = source_url.startswith("file://") or Path(source_url).exists()
+
+            if is_local:
+                src_path = Path(source_url.replace("file://", "")).resolve()
+                dur = max(0.5, new_end - new_start)
+                cmd = [
+                    "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                    "-ss", f"{new_start:.3f}",
+                    "-i", str(src_path),
+                    "-t", f"{dur:.3f}",
+                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+                    "-c:a", "aac", "-b:a", "192k",
+                    "-avoid_negative_ts", "make_zero",
+                    str(raw_mp4),
+                ]
+                subprocess.run(cmd, check=True)
+            elif target.get("is_live_source"):
                 video = inspect_youtube_url(source_url)
                 if video.is_live:
                     v_url, a_url = pick_live_hls_urls(video)
@@ -589,10 +733,13 @@ class ClipPipeline:
                 captions=bool(target.get("captions", False)),
                 loudnorm=bool(target.get("loudnorm", True)),
                 watermark=str(target.get("watermark", "")),
+                watermark_pos=str(target.get("watermark_pos", "bottom_center")),
                 hook_text=str(target.get("title", "")) if target.get("hook_banner") else "",
             )
 
-            if layout == "no_facecam":
+            if layout in ("horizontal_blur", "horizontal_black"):
+                render_horizontal_in_vertical_clip(raw_mp4, new_file, layout=layout, options=opts)
+            elif layout == "no_facecam":
                 render_tracked_vertical_clip(raw_mp4, new_file, options=opts)
             else:
                 render_vertical_clip(

@@ -1,0 +1,21 @@
+# Secrets
+.env
+.env.*
+
+# Python virtual environments
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Generated files
+clips/*
+.work/
+
+# Git files
+.git/
+
+# Logs
+*.log

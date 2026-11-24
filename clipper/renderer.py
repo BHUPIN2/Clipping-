@@ -13,7 +13,13 @@ from typing import Callable, Literal, Optional
 from clipper.captions import build_overlay_ass, ffmpeg_ass_filter_arg, transcribe_words
 from clipper.tracker import track_main_subject_local
 
-LayoutMode = Literal["facecam_top", "facecam_bottom", "no_facecam"]
+LayoutMode = Literal[
+    "facecam_top",
+    "facecam_bottom",
+    "no_facecam",
+    "horizontal_blur",
+    "horizontal_black",
+]
 
 OUT_WIDTH = 1080
 OUT_HEIGHT = 1920
@@ -26,6 +32,7 @@ class RenderOptions:
     captions: bool = False
     loudnorm: bool = True
     watermark: str = ""
+    watermark_pos: str = "bottom_center"
     hook_text: str = ""
 
 
@@ -121,6 +128,50 @@ def render_vertical_clip(
         stack_filter = "[fc][gp]vstack=inputs=2,setpts=PTS-STARTPTS[vbase]"
 
     base_filter = f"{fc_filter};{gp_filter};{stack_filter}"
+    return _finalize_render(
+        input_path=input_path,
+        output_path=output_path,
+        base_filter=base_filter,
+        duration=duration,
+        has_audio=has_audio,
+        layout=layout,
+        options=opts,
+        progress_cb=progress_cb,
+    )
+
+
+def render_horizontal_in_vertical_clip(
+    input_path: Path,
+    output_path: Path,
+    layout: LayoutMode = "horizontal_blur",
+    options: Optional[RenderOptions] = None,
+    progress_cb: Optional[Callable[[str], None]] = None,
+) -> Path:
+    """
+    Render a 1080x1920 vertical MP4 containing the full horizontal video:
+    - horizontal_blur: crisp centered 16:9 video over a full-screen zoomed & heavily blurred background.
+    - horizontal_black: crisp centered 16:9 video with clean black bars on top and bottom.
+    Preserves both host & guest sitting side-by-side without cutting either out!
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    src_w, src_h, duration, has_audio = probe_video_full(input_path)
+    opts = options or RenderOptions()
+
+    if layout == "horizontal_black":
+        base_filter = (
+            f"[0:v]scale={OUT_WIDTH}:-2:flags=lanczos,"
+            f"pad={OUT_WIDTH}:{OUT_HEIGHT}:(ow-iw)/2:(oh-ih)/2:black,"
+            f"setpts=PTS-STARTPTS,setsar=1[vbase]"
+        )
+    else:  # horizontal_blur
+        base_filter = (
+            f"[0:v]split=2[v_bg][v_fg];"
+            f"[v_bg]scale={OUT_WIDTH}:{OUT_HEIGHT}:force_original_aspect_ratio=increase:flags=bicubic,"
+            f"crop={OUT_WIDTH}:{OUT_HEIGHT},boxblur=28:5[bg];"
+            f"[v_fg]scale={OUT_WIDTH}:-2:flags=lanczos[fg];"
+            f"[bg][fg]overlay=(W-w)/2:(H-h)/2,setpts=PTS-STARTPTS,setsar=1[vbase]"
+        )
+
     return _finalize_render(
         input_path=input_path,
         output_path=output_path,
@@ -404,6 +455,7 @@ def _finalize_render(
             words=words,
             hook_text=options.hook_text,
             watermark=options.watermark,
+            watermark_pos=options.watermark_pos,
         )
 
         if ass_path is not None:
